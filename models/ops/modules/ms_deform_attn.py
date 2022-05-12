@@ -52,10 +52,10 @@ class MSDeformAttn(nn.Module):
         self.n_heads = n_heads
         self.n_points = n_points
 
-        self.sampling_offsets = nn.Linear(d_model, n_heads * n_levels * n_points * 2)
-        self.attention_weights = nn.Linear(d_model, n_heads * n_levels * n_points)
-        self.value_proj = nn.Linear(d_model, d_model)
-        self.output_proj = nn.Linear(d_model, d_model)
+        self.sampling_offsets = nn.Linear(d_model, n_heads * n_levels * n_points * 2) # 256,8*4*4*2 = 256,256
+        self.attention_weights = nn.Linear(d_model, n_heads * n_levels * n_points) # 256,8*4*4 = 256,128
+        self.value_proj = nn.Linear(d_model, d_model) # 256,256
+        self.output_proj = nn.Linear(d_model, d_model) # 256,256
 
         self._reset_parameters()
 
