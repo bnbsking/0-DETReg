@@ -7,10 +7,15 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 # ------------------------------------------------------------------------
 """
-Pretrain: python -u main.py --output_dir exps/DETReg_top30_in --dataset imagenet100 --strategy topk --load_backbone swav --max_prop 30 --object_embedding_loss --lr_backbone 0 --epochs 5 --batch_size 24 --num_workers 1
-Finetune: python -u main.py --output_dir exps/DETReg_fine_tune_full_coco --dataset coco --pretrain exps/DETReg_top30_in/checkpoint.pth --batch_size 4 --num_workers 1 --epochs 60
-Evaluation: python -u main.py --output_dir exps/xavier_imagenet_labv2c5/ --dataset coco --pretrain exps/xavier_imagenet_labv2c5/checkpoint0037.pth --batch_size 1 --num_workers 1 --resume exps/xavier_imagenet_labv2c5/checkpoint0037.pth --eval
-Visualization: python -u main.py --output_dir exps/DETReg_fine_tune_full_coco --dataset coco --pretrain exps/DETReg_fine_tune_full_coco/checkpoint.pth --batch_size 1 --num_workers 1
+Pretrain: python -u main.py --output_dir exps/DETReg_top30_in --dataset imagenet100 --strategy topk --load_backbone swav --max_prop 30 \
+    --object_embedding_loss --lr_backbone 0 --epochs 5 --batch_size 24 --num_workers 1
+Finetune: python -u main.py --output_dir exps/DETReg_fine_tune_full_coco --dataset coco --pretrain exps/DETReg_top30_in/checkpoint.pth \
+    --batch_size 4 --num_workers 1 --epochs 60
+
+Evaluation   : python -u main.py --output_dir exps/DETReg_fine_tune_full_coco --dataset coco --pretrain exps/DETReg_fine_tune_full_coco/checkpoint.pth \
+    --batch_size 1 --num_workers 1 --resume exps/DETReg_fine_tune_full_coco/checkpoint.pth --eval
+Visualization: python -u main.py --output_dir exps/DETReg_fine_tune_full_coco --dataset coco --pretrain exps/DETReg_fine_tune_full_coco/checkpoint.pth \
+    --batch_size 1 --num_workers 1 --resume exps/DETReg_fine_tune_full_coco/checkpoint.pth --viz
 """
 
 import argparse
@@ -228,7 +233,7 @@ def main(args):
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']
             # extra checkpoint before LR drop and every 5 epochs
-            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 5 == 0:
+            if True or (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 5 == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
             for checkpoint_path in checkpoint_paths:
                 utils.save_on_master({
@@ -326,8 +331,9 @@ if __name__ == '__main__':
 
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-        args.lr_drop = 999
-        if not args.viz and not args.eval:
-            import json
-            json.dump( vars(args), open(f"{args.output_dir}/args.json","w"))
+        if True:
+            args.lr_drop = 999
+            if not args.viz and not args.eval:
+                import json
+                json.dump( vars(args), open(f"{args.output_dir}/args.json","w"))
     main(args)
