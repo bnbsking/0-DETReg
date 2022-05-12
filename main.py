@@ -70,7 +70,7 @@ def main(args):
         if args.obj_embedding_head == 'head':
             swav_model = build_swav_backbone(args, device)
         elif args.obj_embedding_head == 'intermediate': # True
-            swav_model = build_swav_backbone_old(args, device)
+            swav_model = build_swav_backbone_old(args, device) # get resnet50 # load swav weights # freeze # layer4 output # forward nestedTensor/tensor 
     model, criterion, postprocessors = build_model(args)
     model.to(device)
 
