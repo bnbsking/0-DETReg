@@ -70,7 +70,7 @@ class BackboneBase(nn.Module):
     def __init__(self, backbone: nn.Module, train_backbone: bool, return_interm_layers: bool):
         super().__init__()
         for name, parameter in backbone.named_parameters():
-            if not train_backbone or 'layer2' not in name and 'layer3' not in name and 'layer4' not in name:
+            if not train_backbone or 'layer2' not in name and 'layer3' not in name and 'layer4' not in name: # all are True, then freeze the layers
                 parameter.requires_grad_(False)
         if return_interm_layers:
             # return_layers = {"layer1": "0", "layer2": "1", "layer3": "2", "layer4": "3"}
@@ -81,9 +81,9 @@ class BackboneBase(nn.Module):
             return_layers = {'layer4': "0"}
             self.strides = [32]
             self.num_channels = [2048]
-        self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
+        self.body = IntermediateLayerGetter(backbone, return_layers=return_layers) # output from layer 4
 
-    def forward(self, tensor_list):
+    def forward(self, tensor_list): # util.misc.NestedTensor(tensor+mask_tensor) or tensors -> dict(str:NestedTensor)
         if isinstance(tensor_list, NestedTensor):
             xs = self.body(tensor_list.tensors)
             out: Dict[str, NestedTensor] = {}
@@ -96,7 +96,7 @@ class BackboneBase(nn.Module):
             out = self.forward_non_nested(tensor_list)
         return out
 
-    def forward_non_nested(self, tensors):
+    def forward_non_nested(self, tensors): # tensors -> dict(str:NestedTensor)
         xs = self.body(tensors)
         out: Dict[str, NestedTensor] = {}
         for name, x in xs.items():
@@ -110,18 +110,18 @@ class Backbone(BackboneBase):
                  train_backbone: bool,
                  return_interm_layers: bool,
                  dilation: bool,
-                 load_backbone: str):
+                 load_backbone: str): # resnet50,F,F,swav
 
         pretrained = load_backbone == 'supervised'
         backbone = getattr(torchvision.models, name)(
             replace_stride_with_dilation=[False, False, dilation],
-            pretrained=pretrained, norm_layer=FrozenBatchNorm2d)
+            pretrained=pretrained, norm_layer=FrozenBatchNorm2d) # resnet50([F,F,F],F,Frozen)
         # load the SwAV pre-training model from the url instead of supervised pre-training model
         if name == 'resnet50' and load_backbone == 'swav':
             checkpoint = torch.hub.load_state_dict_from_url('https://dl.fbaipublicfiles.com/deepcluster/swav_800ep_pretrain.pth.tar',map_location="cpu")
             state_dict = {k.replace("module.", ""): v for k, v in checkpoint.items()}
             backbone.load_state_dict(state_dict, strict=False)
-        super().__init__(backbone, train_backbone, return_interm_layers)
+        super().__init__(backbone, train_backbone, return_interm_layers) # resnetModelSwavWeight, False, False
 
 
 class Joiner(nn.Sequential):
@@ -172,6 +172,7 @@ def build_swav_backbone_old(args, device):
     train_backbone = False
     return_interm_layers = args.masks or (args.num_feature_levels > 1)
     model = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation, load_backbone=args.load_backbone).to(device) # resnet50,F,F,swav
+    # resnet 224,224,3 -> 1000 | 112(kernel-7,stride2)->56(residual block 1)->28(rb2)->14(rb3)->7(rb4)->1000(GAP,MLP)
     def model_func(elem):
         return model(elem)['0'].mean(dim=(2,3))
     return model_func
