@@ -81,7 +81,7 @@ class BackboneBase(nn.Module):
             return_layers = {'layer4': "0"}
             self.strides = [32]
             self.num_channels = [2048]
-        self.body = IntermediateLayerGetter(backbone, return_layers=return_layers) # output from layer 4
+        self.body = IntermediateLayerGetter(backbone, return_layers=return_layers) # output from layer 0,1,2
 
     def forward(self, tensor_list): # util.misc.NestedTensor(tensor+mask_tensor) or tensors -> dict(str:NestedTensor)
         if isinstance(tensor_list, NestedTensor):
@@ -102,6 +102,8 @@ class BackboneBase(nn.Module):
         for name, x in xs.items():
             out[name] = x
         return out
+        # since output layer0(128*112*112), layer1(256*56*56), layer2->0(512*28*28), layer3->0(1024*14*14), layer4->0(2048*7*7)
+        # out['0']->bz,512,28,28; out['1']->bz,1024,14,14; out['2']->bz,2048,7,7
 
 class Backbone(BackboneBase):
     """ResNet backbone with frozen BatchNorm."""
@@ -170,10 +172,10 @@ def build_swav_backbone(args, device):
 
 def build_swav_backbone_old(args, device):
     train_backbone = False
-    return_interm_layers = args.masks or (args.num_feature_levels > 1)
-    model = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation, load_backbone=args.load_backbone).to(device) # resnet50,F,F,swav
+    return_interm_layers = args.masks or (args.num_feature_levels > 1) # F or T -> T
+    model = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation, load_backbone=args.load_backbone).to(device) # resnet50,T,F,swav
     # resnet 224,224,3 -> 1000 | 112(kernel-7,stride2)->56(residual block 1)->28(rb2)->14(rb3)->7(rb4)->1000(GAP,MLP)
     def model_func(elem):
-        return model(elem)['0'].mean(dim=(2,3))
+        return model(elem)['0'].mean(dim=(2,3)) # (bz,512,28,28) -> GAP (bz,512) 
     return model_func
 
