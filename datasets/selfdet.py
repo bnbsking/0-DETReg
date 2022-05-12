@@ -138,19 +138,20 @@ def selective_search(img, h, w, res_size=128):
 
 
 def make_self_det_transforms(image_set):
+    # below args: "image" means image batch and "target" is dict or None
     normalize = T.Compose([
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
+        T.ToTensor(), # T.ToTensor()(image,target) -> tensor(image),target
+        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]) # normalize image and if "boxes" in target perform voc->yoloFloat
+    ]) # T.compose(List[func])(image,target) = func(image,target)->image,target sequentially
 
     # The image of ImageNet is relatively small.
     scales = [320, 336, 352, 368, 400, 416, 432, 448, 464, 480]
 
     if image_set == 'train':
         return T.Compose([
-            T.RandomHorizontalFlip(),
-            T.RandomSelect(
-                T.RandomResize(scales, max_size=600),
+            T.RandomHorizontalFlip(), # 0.5 prob to hflip image and label 
+            T.RandomSelect( # 0.5 prob to select either transform1 or transform2 
+                T.RandomResize(scales, max_size=600), # resize image and label
                 T.Compose([
                     T.RandomResize([400, 500, 600]),
                     T.RandomSizeCrop(384, 600),
@@ -207,6 +208,6 @@ def get_query_transforms(image_set):
     raise ValueError(f'unknown {image_set}')
 
 
-def build_selfdet(image_set, args, p):
+def build_selfdet(image_set, args, p): # train, args, path/to/imagenet
     return SelfDet(p, detection_transform=make_self_det_transforms(image_set), query_transform=get_query_transforms(image_set), cache_dir=args.cache_path,
                    max_prop=args.max_prop, strategy=args.strategy)
