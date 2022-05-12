@@ -69,7 +69,7 @@ def main(args):
     if args.dataset in PRETRAINING_DATASETS:
         if args.obj_embedding_head == 'head':
             swav_model = build_swav_backbone(args, device)
-        elif args.obj_embedding_head == 'intermediate':
+        elif args.obj_embedding_head == 'intermediate': # True
             swav_model = build_swav_backbone_old(args, device)
     model, criterion, postprocessors = build_model(args)
     model.to(device)
