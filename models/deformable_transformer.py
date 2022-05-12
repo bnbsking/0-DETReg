@@ -20,7 +20,7 @@ from util.misc import inverse_sigmoid
 from models.ops.modules import MSDeformAttn
 
 
-class DeformableTransformer(nn.Module):
+class DeformableTransformer(nn.Module): # all are same as  default
     def __init__(self, d_model=256, nhead=8,
                  num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=1024, dropout=0.1,
                  activation="relu", return_intermediate_dec=False,
@@ -377,18 +377,18 @@ def _get_activation_fn(activation):
 
 def build_deforamble_transformer(args):
     return DeformableTransformer(
-        d_model=args.hidden_dim,
-        nhead=args.nheads,
-        num_encoder_layers=args.enc_layers,
-        num_decoder_layers=args.dec_layers,
-        dim_feedforward=args.dim_feedforward,
-        dropout=args.dropout,
+        d_model=args.hidden_dim, # 256
+        nhead=args.nheads, # 8
+        num_encoder_layers=args.enc_layers, # 6
+        num_decoder_layers=args.dec_layers, # 6
+        dim_feedforward=args.dim_feedforward, # 1024
+        dropout=args.dropout, # 0.1
         activation="relu",
         return_intermediate_dec=True,
-        num_feature_levels=args.num_feature_levels,
-        dec_n_points=args.dec_n_points,
-        enc_n_points=args.enc_n_points,
-        two_stage=args.two_stage,
-        two_stage_num_proposals=args.num_queries)
+        num_feature_levels=args.num_feature_levels, # 4
+        dec_n_points=args.dec_n_points, # 4
+        enc_n_points=args.enc_n_points, # 4
+        two_stage=args.two_stage, # False
+        two_stage_num_proposals=args.num_queries) # 300
 
 
