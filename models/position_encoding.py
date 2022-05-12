@@ -22,7 +22,7 @@ class PositionEmbeddingSine(nn.Module):
     This is a more standard version of the position embedding, very similar to the one
     used by the Attention is all you need paper, generalized to work on images.
     """
-    def __init__(self, num_pos_feats=64, temperature=10000, normalize=False, scale=None):
+    def __init__(self, num_pos_feats=64, temperature=10000, normalize=False, scale=None): # 128,normalize=True
         super().__init__()
         self.num_pos_feats = num_pos_feats
         self.temperature = temperature
@@ -85,8 +85,8 @@ class PositionEmbeddingLearned(nn.Module):
 
 
 def build_position_encoding(args):
-    N_steps = args.hidden_dim // 2
-    if args.position_embedding in ('v2', 'sine'):
+    N_steps = args.hidden_dim // 2 # 256/2=128
+    if args.position_embedding in ('v2', 'sine'): # sine
         # TODO find a better way of exposing other arguments
         position_embedding = PositionEmbeddingSine(N_steps, normalize=True)
     elif args.position_embedding in ('v3', 'learned'):
