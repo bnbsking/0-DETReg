@@ -33,29 +33,29 @@ def build_model(args):
     device = torch.device(args.device)
 
     weight_dict = {'loss_ce': args.cls_loss_coef, 'loss_bbox': args.bbox_loss_coef,
-                   'loss_giou': args.giou_loss_coef}
-    if args.masks:
-        weight_dict["loss_mask"] = args.mask_loss_coef
-        weight_dict["loss_dice"] = args.dice_loss_coef
+                   'loss_giou': args.giou_loss_coef} # 2:5:2
+    if args.masks: # False
+        weight_dict["loss_mask"] = args.mask_loss_coef # 1
+        weight_dict["loss_dice"] = args.dice_loss_coef # 1
     # TODO this is a hack
-    if args.aux_loss:
+    if args.aux_loss: # True
         aux_weight_dict = {}
-        for i in range(args.dec_layers - 1):
+        for i in range(args.dec_layers - 1): # 6-1
             aux_weight_dict.update(
                 {k + f'_{i}': v for k, v in weight_dict.items()})
 
         # only in def detr impl.
-        if args.model == 'deformable_detr':
+        if args.model == 'deformable_detr': # True
             aux_weight_dict.update(
                 {k + f'_enc': v for k, v in weight_dict.items()})
-        weight_dict.update(aux_weight_dict)
+        weight_dict.update(aux_weight_dict) # loss_ce_/0~4/enc (2), loss_bbox_/0~4/enc (5), loss_giou_/0~4/enc (2) # 7*3=21
 
     losses = ['labels', 'boxes', 'cardinality']
-    if args.object_embedding_loss:
+    if args.object_embedding_loss: # True
         losses.append('object_embedding')
-        weight_dict['loss_object_embedding'] = args.object_embedding_coef
+        weight_dict['loss_object_embedding'] = args.object_embedding_coef # 1
 
-    if args.masks:
+    if args.masks: # False
         losses += ["masks"]
 
     backbone = build_backbone(args)
@@ -65,14 +65,14 @@ def build_model(args):
         model = DeformableDETR(
             backbone,
             transformer,
-            num_classes=num_classes,
-            num_queries=args.num_queries,
-            num_feature_levels=args.num_feature_levels,
-            aux_loss=args.aux_loss,
-            with_box_refine=args.with_box_refine,
-            two_stage=args.two_stage,
-            object_embedding_loss=args.object_embedding_loss,
-            obj_embedding_head=args.obj_embedding_head
+            num_classes=num_classes, # 
+            num_queries=args.num_queries, # 300
+            num_feature_levels=args.num_feature_levels, # 4
+            aux_loss=args.aux_loss, # True
+            with_box_refine=args.with_box_refine, # False
+            two_stage=args.two_stage, # False
+            object_embedding_loss=args.object_embedding_loss, # True
+            obj_embedding_head=args.obj_embedding_head # intermediate
         )
         matcher = build_def_matcher(args)
         criterion = DefSetCriterion(num_classes, matcher, weight_dict, losses, focal_alpha=args.focal_alpha)
