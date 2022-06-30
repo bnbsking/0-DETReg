@@ -139,6 +139,7 @@ class Joiner(nn.Sequential):
         self.num_channels = backbone.num_channels # [512, 1024, 2048]
 
     def forward(self, tensor_list: NestedTensor):
+        # e.g. (1,3,338,600),M(1,338,600) -> [(bz,512,43,75),(bz,1024,22,38),(bz,2048,22,38)], [(bz,256,43,75),(bz,256,22,38),(bz,256,11,19)]
         xs = self[0](tensor_list)
         out: List[NestedTensor] = []
         pos = []
@@ -155,10 +156,10 @@ class Joiner(nn.Sequential):
 def build_backbone(args):
     position_embedding = build_position_encoding(args)
     train_backbone = args.lr_backbone > 0 # False
-    return_interm_layers = args.masks or (args.num_feature_levels > 1) # False or True -> True
-    backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation, load_backbone=args.load_backbone) # resnet50,T,F,swav
+    return_interm_layers = args.masks or (args.num_feature_levels > 1) # False or 4>1 -> True
+    backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation, load_backbone=args.load_backbone) # resnet50,F,T,F,swav
     model = Joiner(backbone, position_embedding)
-    model.num_channels = backbone.num_channels
+    model.num_channels = backbone.num_channels # [512, 1024, 2048]
     return model
 
 def build_swav_backbone(args, device):
