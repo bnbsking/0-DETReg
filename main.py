@@ -6,17 +6,7 @@
 # Modified from DETR (https://github.com/facebookresearch/detr)
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 # ------------------------------------------------------------------------
-"""
-Pretrain: python -u main.py --output_dir exps/DETReg_top30_in --dataset imagenet100 --strategy topk --load_backbone swav --max_prop 30 \
-    --object_embedding_loss --lr_backbone 0 --epochs 5 --batch_size 24 --num_workers 1
-Finetune: python -u main.py --output_dir exps/DETReg_fine_tune_full_coco --dataset coco --pretrain exps/DETReg_top30_in/checkpoint.pth \
-    --batch_size 4 --num_workers 1 --epochs 60
 
-Evaluation   : python -u main.py --output_dir exps/DETReg_fine_tune_full_coco --dataset coco --pretrain exps/DETReg_fine_tune_full_coco/checkpoint.pth \
-    --batch_size 1 --num_workers 1 --resume exps/DETReg_fine_tune_full_coco/checkpoint.pth --eval
-Visualization: python -u main.py --output_dir exps/DETReg_fine_tune_full_coco --dataset coco --pretrain exps/DETReg_fine_tune_full_coco/checkpoint.pth \
-    --batch_size 1 --num_workers 1 --resume exps/DETReg_fine_tune_full_coco/checkpoint.pth --viz
-"""
 
 import argparse
 import datetime
@@ -45,17 +35,17 @@ def main(args):
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
 
-    if args.frozen_weights is not None:
+    if args.frozen_weights is not None: # None
         assert args.masks, "Frozen training is meant for segmentation only"
     print(args)
 
     device = torch.device(args.device)
 
     # fix the seed for reproducibility
-    if args.random_seed:
+    if args.random_seed: # False
         args.seed = np.random.randint(0, 1000000)
 
-    if args.resume:
+    if args.resume: # False
         checkpoint_args = torch.load(args.resume, map_location='cpu')['args']
         args.seed = checkpoint_args.seed
         print("Loaded random seed from checkpoint:", checkpoint_args.seed)
@@ -70,8 +60,8 @@ def main(args):
         if args.obj_embedding_head == 'head':
             swav_model = build_swav_backbone(args, device)
         elif args.obj_embedding_head == 'intermediate': # True
-            swav_model = build_swav_backbone_old(args, device) # (bz,3,224,224) -> (bz,512)
-            # get resnet50 # load swav weights # freeze # mid-layer output # forward nestedTensor/tensor # gap
+            swav_model = build_swav_backbone_old(args, device)
+            # (bz,3,224,224) -> (bz,512)
     model, criterion, postprocessors = build_model(args)
     model.to(device)
 
@@ -220,7 +210,7 @@ def main(args):
 
     if args.viz:
         viz(model, criterion, postprocessors,
-            data_loader_val, base_ds, device, args.output_dir)
+            data_loader_val, base_ds, device, args.output_dir, args.data_root_ft)
         return
 
     print("Start training")
@@ -234,7 +224,7 @@ def main(args):
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']
             # extra checkpoint before LR drop and every 5 epochs
-            if True or (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 5 == 0:
+            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 5 == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
             for checkpoint_path in checkpoint_paths:
                 utils.save_on_master({
@@ -317,7 +307,7 @@ def get_datasets(args):
 
 
 def set_dataset_path(args):
-    args.coco_path = os.path.join(args.data_root, 'MSCoco')
+    args.coco_path = os.path.join(args.data_root_ft, 'MSCoco')
     args.airbus_path = os.path.join(args.data_root, 'airbus-ship-detection')
     args.imagenet_path = os.path.join(args.data_root, 'ilsvrc')
     args.imagenet100_path = os.path.join(args.data_root, 'ilsvrc100')
@@ -332,9 +322,7 @@ if __name__ == '__main__':
 
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-        if True:
-            args.lr_drop = 999
-            if not args.viz and not args.eval:
-                import json
-                json.dump( vars(args), open(f"{args.output_dir}/args.json","w"))
+    
+    if True:
+        import json, datetime; json.dump( vars(args), open(f"{args.output_dir}/args_{str(datetime.datetime.now())[:-7]}.json","w") )#; raise
     main(args)
