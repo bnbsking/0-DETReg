@@ -67,7 +67,7 @@ class FrozenBatchNorm2d(torch.nn.Module):
 
 class BackboneBase(nn.Module):
 
-    def __init__(self, backbone: nn.Module, train_backbone: bool, return_interm_layers: bool):
+    def __init__(self, backbone: nn.Module, train_backbone: bool, return_interm_layers: bool): # resnet50, F, T
         super().__init__()
         for name, parameter in backbone.named_parameters():
             if not train_backbone or 'layer2' not in name and 'layer3' not in name and 'layer4' not in name: # all are True, then freeze the layers
@@ -81,7 +81,7 @@ class BackboneBase(nn.Module):
             return_layers = {'layer4': "0"}
             self.strides = [32]
             self.num_channels = [2048]
-        self.body = IntermediateLayerGetter(backbone, return_layers=return_layers) # output from layer 0,1,2
+        self.body = IntermediateLayerGetter(backbone, return_layers=return_layers) # output from layer 2,3,4 as named 0,1,2
 
     def forward(self, tensor_list): # util.misc.NestedTensor(tensor+mask_tensor) or tensors -> dict(str:NestedTensor)
         if isinstance(tensor_list, NestedTensor):
@@ -102,8 +102,6 @@ class BackboneBase(nn.Module):
         for name, x in xs.items():
             out[name] = x
         return out
-        # since output layer0(128*112*112), layer1(256*56*56), layer2->0(512*28*28), layer3->0(1024*14*14), layer4->0(2048*7*7)
-        # out['0']->bz,512,28,28; out['1']->bz,1024,14,14; out['2']->bz,2048,7,7
 
 class Backbone(BackboneBase):
     """ResNet backbone with frozen BatchNorm."""
@@ -112,18 +110,26 @@ class Backbone(BackboneBase):
                  train_backbone: bool,
                  return_interm_layers: bool,
                  dilation: bool,
-                 load_backbone: str): # resnet50,F,F,swav
+                 load_backbone: str): # resnet50,F,T,F,swav
 
         pretrained = load_backbone == 'supervised'
         backbone = getattr(torchvision.models, name)(
             replace_stride_with_dilation=[False, False, dilation],
             pretrained=pretrained, norm_layer=FrozenBatchNorm2d) # resnet50([F,F,F],F,Frozen)
+        # resnet 50: (224,224,3) -> ker=(7,7),stride=2 (112,112,64) -> L1:maxPool=(3,3),stride=2 (56,56,256) -> L2:same (28,28,512)
+        # -> L3:same (14,14,1024) -> L4:same (7,7,2048) -> GAP and MLP to 1000
         # load the SwAV pre-training model from the url instead of supervised pre-training model
         if name == 'resnet50' and load_backbone == 'swav':
             checkpoint = torch.hub.load_state_dict_from_url('https://dl.fbaipublicfiles.com/deepcluster/swav_800ep_pretrain.pth.tar',map_location="cpu")
             state_dict = {k.replace("module.", ""): v for k, v in checkpoint.items()}
             backbone.load_state_dict(state_dict, strict=False)
-        super().__init__(backbone, train_backbone, return_interm_layers) # resnetModelSwavWeight, False, False
+        super().__init__(backbone, train_backbone, return_interm_layers) # resnet50, F, T -> resnetModelSwavWeight, False, False
+#         if True:
+#             inp = torch.rand(1,3,224,224)
+#             out = self(inp)
+#             for key in out:
+#                 print( key, out[key].shape ) # 0,(1,512,28,28) # 1,(1,1024,14,14) # 2,(1,2048,7,7) 
+#             raise
 
 
 class Joiner(nn.Sequential):
@@ -173,9 +179,9 @@ def build_swav_backbone(args, device):
 def build_swav_backbone_old(args, device):
     train_backbone = False
     return_interm_layers = args.masks or (args.num_feature_levels > 1) # F or T -> T
-    model = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation, load_backbone=args.load_backbone).to(device) # resnet50,T,F,swav
-    # resnet 224,224,3 -> 1000 | 112(kernel-7,stride2)->56(residual block 1)->28(rb2)->14(rb3)->7(rb4)->1000(GAP,MLP)
+    model = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation, load_backbone=args.load_backbone).to(device)#resnet50,F,T,F,swav
+    # (1,3,224,224) -> 0:(1,512,28,28), 1:(1,1024,14,14), 2:(1,2048,7,7)
     def model_func(elem):
-        return model(elem)['0'].mean(dim=(2,3)) # (bz,512,28,28) -> GAP (bz,512) 
+        return model(elem)['0'].mean(dim=(2,3)) # (bz,512,28,28) -> (bz,512) GAP
     return model_func
 
