@@ -98,10 +98,10 @@ def build_model(args):
 
     criterion.to(device)
 
-    if args.masks:
+    if args.masks: # False
         model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))
 
-    if args.masks:
+    if args.masks: # False
         postprocessors['segm'] = PostProcessSegm()
         if args.dataset_file == "coco_panoptic":
             is_thing_map = {i: i <= 90 for i in range(201)}
