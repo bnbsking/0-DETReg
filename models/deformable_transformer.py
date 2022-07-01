@@ -37,10 +37,11 @@ class DeformableTransformer(nn.Module):
                                                           dropout, activation,
                                                           num_feature_levels, nhead, enc_n_points) # 256,1024,0.1,'relu',4,8,4
         self.encoder = DeformableTransformerEncoder(encoder_layer, num_encoder_layers)
+        # both attn, enc_layer and encoder are very complex (many inputs), but the main src: (bz,W*H,C=256) -> (bz,W*H,C) # e.g. W*H=5817
 
         decoder_layer = DeformableTransformerDecoderLayer(d_model, dim_feedforward,
                                                           dropout, activation,
-                                                          num_feature_levels, nhead, dec_n_points)
+                                                          num_feature_levels, nhead, dec_n_points) # 256,1024,0.1,'relu',4,8,4
         self.decoder = DeformableTransformerDecoder(decoder_layer, num_decoder_layers, return_intermediate_dec)
 
         self.level_embed = nn.Parameter(torch.Tensor(num_feature_levels, d_model))
@@ -217,6 +218,7 @@ class DeformableTransformerEncoderLayer(nn.Module):
         return src
 
     def forward(self, src, pos, reference_points, spatial_shapes, level_start_index, padding_mask=None):
+        # (bz,5817,256) # (bz,5817,256) # (bz,5817,4,2) # (4,2) # 4 # (bz,5817)
         # self attention
         src2 = self.self_attn(self.with_pos_embed(src, pos), reference_points, src, spatial_shapes, level_start_index, padding_mask)
         src = src + self.dropout1(src2)
@@ -225,7 +227,7 @@ class DeformableTransformerEncoderLayer(nn.Module):
         # ffn
         src = self.forward_ffn(src)
 
-        return src
+        return src # (bz,5817,256)
 
 
 class DeformableTransformerEncoder(nn.Module):
@@ -261,11 +263,11 @@ class DeformableTransformerEncoder(nn.Module):
 class DeformableTransformerDecoderLayer(nn.Module):
     def __init__(self, d_model=256, d_ffn=1024,
                  dropout=0.1, activation="relu",
-                 n_levels=4, n_heads=8, n_points=4):
+                 n_levels=4, n_heads=8, n_points=4): # all are same
         super().__init__()
 
         # cross attention
-        self.cross_attn = MSDeformAttn(d_model, n_levels, n_heads, n_points)
+        self.cross_attn = MSDeformAttn(d_model, n_levels, n_heads, n_points) # 256,4,8,4
         self.dropout1 = nn.Dropout(dropout)
         self.norm1 = nn.LayerNorm(d_model)
 
@@ -293,6 +295,7 @@ class DeformableTransformerDecoderLayer(nn.Module):
         return tgt
 
     def forward(self, tgt, query_pos, reference_points, src, src_spatial_shapes, level_start_index, src_padding_mask=None):
+        # (bz,300,256) # (bz,300,256) # (bz,300,4,2) # (bz,5817,256) # (4,2)      # (4,)            # (bz,5817) 
         # self attention
         q = k = self.with_pos_embed(tgt, query_pos)
         tgt2 = self.self_attn(q.transpose(0, 1), k.transpose(0, 1), tgt.transpose(0, 1))[0].transpose(0, 1)
@@ -309,7 +312,7 @@ class DeformableTransformerDecoderLayer(nn.Module):
         # ffn
         tgt = self.forward_ffn(tgt)
 
-        return tgt
+        return tgt # (bz,300,256)
 
 
 class DeformableTransformerDecoder(nn.Module):
@@ -324,6 +327,7 @@ class DeformableTransformerDecoder(nn.Module):
 
     def forward(self, tgt, reference_points, src, src_spatial_shapes, src_level_start_index, src_valid_ratios,
                 query_pos=None, src_padding_mask=None):
+        # (bz,300,256), (bz,300,2), (bz,5817,256), (4,2),             (4,),                  (bz,4,2), # (2,300,256), (2,5817) 
         output = tgt
 
         intermediate = []
@@ -354,8 +358,8 @@ class DeformableTransformerDecoder(nn.Module):
                 intermediate.append(output)
                 intermediate_reference_points.append(reference_points)
 
-        if self.return_intermediate:
-            return torch.stack(intermediate), torch.stack(intermediate_reference_points)
+        if self.return_intermediate: # True
+            return torch.stack(intermediate), torch.stack(intermediate_reference_points) # (6,bz,300,256), (6,bz,300,2)
 
         return output, reference_points
 
