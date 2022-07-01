@@ -87,6 +87,8 @@ class MSDeformAttn(nn.Module):
 
         :return output                     (N, Length_{query}, C)
         """
+        # (bz,5817,256) # (bz,5817,4,2) # (bz,5817,256) # (4,2) # 4 # (bz,5817) # -> (bz,5817,256)
+        
         N, Len_q, _ = query.shape
         N, Len_in, _ = input_flatten.shape
         assert (input_spatial_shapes[:, 0] * input_spatial_shapes[:, 1]).sum() == Len_in
