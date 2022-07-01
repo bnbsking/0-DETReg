@@ -31,7 +31,7 @@ class DeformableDETR(nn.Module):
     """ This is the Deformable DETR module that performs object detection """
     def __init__(self, backbone, transformer, num_classes, num_queries, num_feature_levels,
                  aux_loss=True, with_box_refine=False, two_stage=False, object_embedding_loss=False,
-                 obj_embedding_head=None):
+                 obj_embedding_head=None): # swav3, DT, cls, 300, 4, True, False, False, True, 'intermediate'
         """ Initializes the model.
         Parameters:
             backbone: torch module of the backbone to be used. See backbone.py
@@ -48,19 +48,19 @@ class DeformableDETR(nn.Module):
         self.transformer = transformer
         self.object_embedding_loss = object_embedding_loss
         hidden_dim = transformer.d_model
-        self.class_embed = nn.Linear(hidden_dim, num_classes)
-        if self.object_embedding_loss:
+        self.class_embed = nn.Linear(hidden_dim, num_classes) # 256,cls
+        if self.object_embedding_loss: # True
             if obj_embedding_head == 'intermediate':
-                last_channel_size = 2*hidden_dim
+                last_channel_size = 2*hidden_dim # 512
             elif obj_embedding_head == 'head':
                 last_channel_size = hidden_dim//2
-            self.feature_embed = MLP(hidden_dim, hidden_dim, last_channel_size, 2)
-        self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
-        self.num_feature_levels = num_feature_levels
+            self.feature_embed = MLP(hidden_dim, hidden_dim, last_channel_size, 2) # input_dim=256, hidden_dim=256, output_dim=cls, num_layers=2
+        self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3) # 256,256,4 for coordinates,3 layers
+        self.num_feature_levels = num_feature_levels # 4
         if not two_stage:
-            self.query_embed = nn.Embedding(num_queries, hidden_dim*2)
-        if num_feature_levels > 1:
-            num_backbone_outs = len(backbone.strides)
+            self.query_embed = nn.Embedding(num_queries, hidden_dim*2) # 300,512
+        if num_feature_levels > 1: # True
+            num_backbone_outs = len(backbone.strides) # len([8,16,32])=3
             input_proj_list = []
             for _ in range(num_backbone_outs):
                 in_channels = backbone.num_channels[_]
@@ -74,7 +74,7 @@ class DeformableDETR(nn.Module):
                     nn.GroupNorm(32, hidden_dim),
                 ))
                 in_channels = hidden_dim
-            self.input_proj = nn.ModuleList(input_proj_list)
+            self.input_proj = nn.ModuleList(input_proj_list) # a small model
         else:
             self.input_proj = nn.ModuleList([
                 nn.Sequential(
@@ -133,12 +133,14 @@ class DeformableDETR(nn.Module):
                - "aux_outputs": Optional, only returned when auxilary losses are activated. It is a list of
                                 dictionnaries containing the two above keys for each decoder layer.
         """
-        if not isinstance(samples, NestedTensor):
+        if not isinstance(samples, NestedTensor): # true
             samples = nested_tensor_from_tensor_list(samples)
         return self.forward_samples(samples)
 
-    def forward_samples(self, samples):
-        features, pos = self.backbone(samples)
+    def forward_samples(self, samples): # samples.tensors.shape=(B,3,464,599) # samples.mask.shape=(B,464,599)
+        features, pos = self.backbone(samples) # list[NestedTensor], list[Tensor] # both len are 3
+        # [tensors(B,512,58,75)masks(B,58,75), tensors(B,1024,29,38)masks(B,29,38), tensors(B,2048,15,19)masks(B,15,19)]
+        # [(B,256,58,75), (B,256,29,38), (B,256,15,19)]
         srcs = []
         masks = []
         for l, feat in enumerate(features):
