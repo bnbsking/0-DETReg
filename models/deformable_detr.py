@@ -65,7 +65,7 @@ class DeformableDETR(nn.Module):
             for _ in range(num_backbone_outs):
                 in_channels = backbone.num_channels[_]
                 input_proj_list.append(nn.Sequential(
-                    nn.Conv2d(in_channels, hidden_dim, kernel_size=1),
+                    nn.Conv2d(in_channels, hidden_dim, kernel_size=1), # 512,256 # (B,F,W,H)->(B,F/2,W,H)
                     nn.GroupNorm(32, hidden_dim),
                 ))
             for _ in range(num_feature_levels - num_backbone_outs):
@@ -97,7 +97,7 @@ class DeformableDETR(nn.Module):
 
         # if two-stage, the last class_embed and bbox_embed is for region proposal generation
         num_pred = (transformer.decoder.num_layers + 1) if two_stage else transformer.decoder.num_layers
-        if with_box_refine:
+        if with_box_refine: # False
             self.class_embed = _get_clones(self.class_embed, num_pred)
             # if self.object_embedding_loss:
             #     self.feature_embed = _get_clones(self.feature_embed, num_pred)
@@ -110,9 +110,9 @@ class DeformableDETR(nn.Module):
             self.class_embed = nn.ModuleList([self.class_embed for _ in range(num_pred)])
             # if self.object_embedding_loss:
             #     self.feature_embed = nn.ModuleList([self.feature_embed for _ in range(num_pred)])
-            self.bbox_embed = nn.ModuleList([self.bbox_embed for _ in range(num_pred)])
+            self.bbox_embed = nn.ModuleList([self.bbox_embed for _ in range(num_pred)]) # len=6
             self.transformer.decoder.bbox_embed = None
-        if two_stage:
+        if two_stage: # False
             # hack implementation for two-stage
             self.transformer.decoder.class_embed = self.class_embed
             for box_embed in self.bbox_embed:
@@ -148,9 +148,9 @@ class DeformableDETR(nn.Module):
             srcs.append(self.input_proj[l](src))
             masks.append(mask)
             assert mask is not None
-        if self.num_feature_levels > len(srcs):
+        if self.num_feature_levels > len(srcs): # True
             _len_srcs = len(srcs)
-            for l in range(_len_srcs, self.num_feature_levels):
+            for l in range(_len_srcs, self.num_feature_levels): # range(3,4)
                 if l == _len_srcs:
                     src = self.input_proj[l](features[-1].tensors)
                 else:
@@ -164,38 +164,44 @@ class DeformableDETR(nn.Module):
         query_embeds = None
         if not self.two_stage:
             query_embeds = self.query_embed.weight
+        # srcs =[ (bz,256,58,75), (bz,256,29,38), (bz,256,15,19), (bz,256,8,10) ]
+        # masks =[ (bz,58,75),     (bz,29,38),     (bz,15,19),     (bz,8,10) ]
+        # pos: same format as srcs
+        # query_embeds (300,512)
         hs, init_reference, inter_references, enc_outputs_class, enc_outputs_coord_unact = self.transformer(srcs, masks,
                                                                                                             pos,
                                                                                                             query_embeds)
+        # (6,B,300,256), (B,300,2), (6,B,300,2), None, None
         outputs_classes = []
         outputs_coords = []
         outputs_features = []
         for lvl in range(hs.shape[0]):
             if lvl == 0:
-                reference = init_reference
+                reference = init_reference # (B,300,2)
             else:
-                reference = inter_references[lvl - 1]
+                reference = inter_references[lvl - 1] # (B,300,2)
             reference = inverse_sigmoid(reference)
-            outputs_class = self.class_embed[lvl](hs[lvl])
-            tmp = self.bbox_embed[lvl](hs[lvl])
+            outputs_class = self.class_embed[lvl](hs[lvl]) # (B,300,256) -> (B,300,classes)
+            tmp = self.bbox_embed[lvl](hs[lvl])            # (B,300,256) -> (B,300,4)
+            # print(reference.shape) # (B,300,2)
             if reference.shape[-1] == 4:
                 tmp += reference
             else:
                 assert reference.shape[-1] == 2
-                tmp[..., :2] += reference
+                tmp[..., :2] += reference            # shift cx, cy part
             outputs_coord = tmp.sigmoid()
             outputs_classes.append(outputs_class)
             outputs_coords.append(outputs_coord)
             # if self.object_embedding_loss:
             #     outputs_features.append(outputs_feat)
-        outputs_class = torch.stack(outputs_classes)
-        outputs_coord = torch.stack(outputs_coords)
+        outputs_class = torch.stack(outputs_classes) # (6,B,300,classes)
+        outputs_coord = torch.stack(outputs_coords)  # (6,B,300,4)
         # if self.object_embedding_loss:
         #     outputs_features = torch.stack(outputs_features)
 
         out = {'pred_logits': outputs_class[-1], 'pred_boxes': outputs_coord[-1]}
         if self.object_embedding_loss:
-            out['pred_features'] = self.feature_embed(hs[-1])
+            out['pred_features'] = self.feature_embed(hs[-1]) # (B,300,512)
 
         if self.aux_loss:
             out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord) #, outputs_features)
@@ -204,7 +210,7 @@ class DeformableDETR(nn.Module):
             out['enc_outputs'] = {'pred_logits': enc_outputs_class, 'pred_boxes': enc_outputs_coord}
             if self.object_embedding_loss:
                 out['pred_features'] = outputs_features
-        return out
+        return out # pred_logits (B,300,classes), pred_boxes (B,300,4), aux_outputs (B,300,512)
 
     @torch.jit.unused
     def _set_aux_loss(self, outputs_class, outputs_coord):#, outputs_features):
