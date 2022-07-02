@@ -94,9 +94,9 @@ class HungarianMatcher(nn.Module):
             sizes = [len(v["boxes"]) for v in targets]
             indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C.split(sizes, -1))]
             return [(torch.as_tensor(i, dtype=torch.int64), torch.as_tensor(j, dtype=torch.int64)) for i, j in indices]
-
+            # list[tuple(Tensor[int])] # from outer to inner: len=B; len=2 due to bipartite matching; len=predict_boxes; int means index (0~300)
 
 def build_matcher(args):
-    return HungarianMatcher(cost_class=args.set_cost_class,
-                            cost_bbox=args.set_cost_bbox,
-                            cost_giou=args.set_cost_giou)
+    return HungarianMatcher(cost_class=args.set_cost_class, # 2
+                            cost_bbox=args.set_cost_bbox, # 5
+                            cost_giou=args.set_cost_giou) # 2
