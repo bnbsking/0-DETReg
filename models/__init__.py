@@ -75,7 +75,7 @@ def build_model(args):
             obj_embedding_head=args.obj_embedding_head # intermediate
         )
         matcher = build_def_matcher(args)
-        criterion = DefSetCriterion(num_classes, matcher, weight_dict, losses, focal_alpha=args.focal_alpha)
+        criterion = DefSetCriterion(num_classes, matcher, weight_dict, losses, focal_alpha=args.focal_alpha) # focal_alpha=0.25
         postprocessors = {'bbox': DefPostProcess()}
 
     elif args.model == 'detr':
