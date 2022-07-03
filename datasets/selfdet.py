@@ -103,6 +103,9 @@ class SelfDet(Dataset):
         img, target = self.detection_transform(img, target)
         if len(target['boxes']) < 2:
             return self.__getitem__(random.randint(0, len(self.files) - 1))
+        # img.shape=(3,H=410,W=599)
+        # target['orig_size']=(720,1280), target['size']=(410,599), target['patches'].shape=(30,3,128,128)
+        # target['boxes'].shape=(30,4) float-voc, target['iscrowd']=[0]*30, target['area']=list[int] len=30, target['labels']=[1]*30
         return img, target
 
     def load_from_cache(self, item, img, h, w):
