@@ -40,6 +40,7 @@ def train_one_epoch(model: torch.nn.Module, swav_model: torch.nn.Module, criteri
 
     prefetcher = data_prefetcher(data_loader, device, prefetch=True)
     samples, targets = prefetcher.next()
+    # samples.tensors.shape=(2,3,H=464,W=599) # samples.mask.shape=(2,464,599) # len(targets)=batch_size, targets[0]:dict
 
     # for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
     for _ in metric_logger.log_every(range(len(data_loader)), print_freq, header):
