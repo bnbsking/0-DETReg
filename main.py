@@ -112,23 +112,23 @@ def main(args):
             "params":
                 [p for n, p in model_without_ddp.named_parameters()
                  if not match_name_keywords(n, args.lr_backbone_names) and not match_name_keywords(n, args.lr_linear_proj_names) and p.requires_grad],
-            "lr": args.lr,
+            "lr": args.lr,  # reference_points,sampling_offsets # 0.0002
         },
         {
             "params": [p for n, p in model_without_ddp.named_parameters() if match_name_keywords(n, args.lr_backbone_names) and p.requires_grad],
-            "lr": args.lr_backbone,
+            "lr": args.lr_backbone, # backbone.0 # 0
         },
         {
             "params": [p for n, p in model_without_ddp.named_parameters() if match_name_keywords(n, args.lr_linear_proj_names) and p.requires_grad],
-            "lr": args.lr * args.lr_linear_proj_mult,
+            "lr": args.lr * args.lr_linear_proj_mult, # reference_points,sampling_offsets # 0.0002*0.1
         }
     ]
     if args.sgd:
         optimizer = torch.optim.SGD(param_dicts, lr=args.lr, momentum=0.9,
                                     weight_decay=args.weight_decay)
     else:
-        optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
-                                      weight_decay=args.weight_decay)
+        optimizer = torch.optim.AdamW(param_dicts, lr=args.lr, # 0.0002
+                                      weight_decay=args.weight_decay) # 0.0001
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
     if args.distributed:
