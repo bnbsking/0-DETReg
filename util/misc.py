@@ -274,7 +274,7 @@ def get_sha():
     return message
 
 
-def collate_fn(batch):
+def collate_fn(batch): # len(batch)=batch_size # batch[0]=(image:(3,H,W),target:dict)
     batch = list(zip(*batch))
     batch[0] = nested_tensor_from_tensor_list(batch[0])
     return tuple(batch)
