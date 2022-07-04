@@ -441,7 +441,8 @@ class SetCriterion(nn.Module):
                 l_dict = self.get_loss(loss, enc_outputs, bin_targets, indices, num_boxes, **kwargs)
                 l_dict = {k + f'_enc': v for k, v in l_dict.items()}
                 losses.update(l_dict)
-        # [ce,bbox,giou,cardinality] x [0~4,overall] + object_emb + class_err # 4*6+1+1 = 26 terms
+        # pretext: [ce,bbox,giou,cardinality] x [0~4,overall] + object_emb + class_err # 4*6+1+1 = 26 terms
+        # downstream same as above but object embedded loss is excluded
         return losses
 
 
