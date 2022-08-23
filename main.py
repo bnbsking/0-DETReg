@@ -35,17 +35,17 @@ def main(args):
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
 
-    if args.frozen_weights is not None: # None
+    if args.frozen_weights is not None:
         assert args.masks, "Frozen training is meant for segmentation only"
     print(args)
 
     device = torch.device(args.device)
 
     # fix the seed for reproducibility
-    if args.random_seed: # False
+    if args.random_seed:
         args.seed = np.random.randint(0, 1000000)
 
-    if args.resume: # False
+    if args.resume:
         checkpoint_args = torch.load(args.resume, map_location='cpu')['args']
         args.seed = checkpoint_args.seed
         print("Loaded random seed from checkpoint:", checkpoint_args.seed)
@@ -59,9 +59,8 @@ def main(args):
     if args.dataset in PRETRAINING_DATASETS:
         if args.obj_embedding_head == 'head':
             swav_model = build_swav_backbone(args, device)
-        elif args.obj_embedding_head == 'intermediate': # True
+        elif args.obj_embedding_head == 'intermediate':
             swav_model = build_swav_backbone_old(args, device)
-            # (bz,3,224,224) -> (bz,512)
     model, criterion, postprocessors = build_model(args)
     model.to(device)
 
@@ -112,23 +111,23 @@ def main(args):
             "params":
                 [p for n, p in model_without_ddp.named_parameters()
                  if not match_name_keywords(n, args.lr_backbone_names) and not match_name_keywords(n, args.lr_linear_proj_names) and p.requires_grad],
-            "lr": args.lr,  # reference_points,sampling_offsets # 0.0002
+            "lr": args.lr,
         },
         {
             "params": [p for n, p in model_without_ddp.named_parameters() if match_name_keywords(n, args.lr_backbone_names) and p.requires_grad],
-            "lr": args.lr_backbone, # backbone.0 # 0
+            "lr": args.lr_backbone,
         },
         {
             "params": [p for n, p in model_without_ddp.named_parameters() if match_name_keywords(n, args.lr_linear_proj_names) and p.requires_grad],
-            "lr": args.lr * args.lr_linear_proj_mult, # reference_points,sampling_offsets # 0.0002*0.1
+            "lr": args.lr * args.lr_linear_proj_mult,
         }
     ]
     if args.sgd:
         optimizer = torch.optim.SGD(param_dicts, lr=args.lr, momentum=0.9,
                                     weight_decay=args.weight_decay)
     else:
-        optimizer = torch.optim.AdamW(param_dicts, lr=args.lr, # 0.0002
-                                      weight_decay=args.weight_decay) # 0.0001
+        optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
+                                      weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
     if args.distributed:
@@ -224,7 +223,7 @@ def main(args):
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']
             # extra checkpoint before LR drop and every 5 epochs
-            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 5 == 0:
+            if (epoch>=100 and args.dataset=="coco") or (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 5 == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
             for checkpoint_path in checkpoint_paths:
                 utils.save_on_master({

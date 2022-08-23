@@ -40,7 +40,6 @@ def train_one_epoch(model: torch.nn.Module, swav_model: torch.nn.Module, criteri
 
     prefetcher = data_prefetcher(data_loader, device, prefetch=True)
     samples, targets = prefetcher.next()
-    # samples.tensors.shape=(2,3,H=464,W=599) # samples.mask.shape=(2,464,599) # len(targets)=batch_size, targets[0]:dict
 
     # for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
     for _ in metric_logger.log_every(range(len(data_loader)), print_freq, header):
@@ -196,8 +195,9 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         stats['PQ_st'] = panoptic_res["Stuff"]
     return stats, coco_evaluator
 
+
 @torch.no_grad()
-def viz(model, criterion, postprocessors, data_loader, base_ds, device, output_dir):
+def viz(model, criterion, postprocessors, data_loader, base_ds, device, output_dir, data_root_ft):
     import numpy as np
     os.makedirs(output_dir, exist_ok=True)
     model.eval()
@@ -212,6 +212,12 @@ def viz(model, criterion, postprocessors, data_loader, base_ds, device, output_d
         top_k = len(targets[0]['boxes'])
 
         outputs = model(samples)
+        if True:
+            from _packages import detregDownstreamInference as ddi
+            print( f"\r{int(targets[0]['image_id'])+1}/{len(data_loader)}", end="" )
+            ddi.main(outputs, int(targets[0]['image_id']), output_dir, data_root_ft)
+            continue
+            
         indices = outputs['pred_logits'][0].softmax(-1)[..., 1].sort(descending=True)[1][:top_k]
         predictied_boxes = torch.stack([outputs['pred_boxes'][0][i] for i in indices]).unsqueeze(0)
         logits = torch.stack([outputs['pred_logits'][0][i] for i in indices]).unsqueeze(0)
