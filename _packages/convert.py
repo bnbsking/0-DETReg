@@ -127,7 +127,7 @@ def voc2coco(sourceFolder, destPath, classList):
 def yolo2voc(sourceFolder, destFolder):
     global xml0, obj0, end0
     with open(f"{sourceFolder}/classes.txt","r") as f:
-        D = {str(i):key[:-1] for i,key in enumerate(f.readlines())} # e.g. D={0:'dog',1:'cat'}
+        D = { str(i):key.replace("\n","") for i,key in enumerate(f.readlines()) } # e.g. D={0:'dog',1:'cat'}
     sourceL = glob.glob(f"{sourceFolder}/*.txt")
     for i,txtPath in enumerate(sourceL):
         print(f"\r{i+1}/{len(sourceL)}", end='')
