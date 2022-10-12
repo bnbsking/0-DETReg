@@ -39,7 +39,7 @@ class ConfusionMatrix:
         self.CONF_THRESHOLD = CONF_THRESHOLD
         self.IOU_THRESHOLD = IOU_THRESHOLD
         self.gtFile = gtFile
-        self.L = accumFileL
+        self.accumFileL = accumFileL
 
     def process_batch(self, detections, labels: np.ndarray):
         """
@@ -51,8 +51,23 @@ class ConfusionMatrix:
         Returns:
             None, updates confusion matrix accordingly
         """
-        gt_classes = labels[:, 0].astype(np.int16)
+        if len(labels)+len(detections)==0:
+            return
+        
+        # check not empty GT
+        if len(labels):
+            gt_classes = labels[:, 0].astype(np.int16)
+        else:
+            for i, detection in enumerate(detections):
+                if detection[-2]<self.CONF_THRESHOLD:
+                    continue
+                detection_class = int(detection[-1])
+                self.matrix[detection_class, self.num_classes] += 1
+                if self.gtFile:
+                    self.accumFileL[detection_class][self.num_classes].append(self.gtFile)
+            return
 
+        # check not empty prediction
         try:
             detections = detections[detections[:, 4] > self.CONF_THRESHOLD]
         except IndexError or TypeError:
@@ -85,16 +100,16 @@ class ConfusionMatrix:
             if all_matches.shape[0] > 0 and all_matches[all_matches[:, 0] == i].shape[0] == 1:
                 detection_class = detection_classes[int(all_matches[all_matches[:, 0] == i, 1][0])]
                 self.matrix[detection_class, gt_class] += 1
-                self.L[detection_class][gt_class].append(self.gtFile) if self.L else None #
+                self.accumFileL[detection_class][gt_class].append(self.gtFile) if self.accumFileL else None #
             else:
                 self.matrix[self.num_classes, gt_class] += 1
-                self.L[self.num_classes][gt_class].append(self.gtFile) if self.L else None #
+                self.accumFileL[self.num_classes][gt_class].append(self.gtFile) if self.accumFileL else None #
 
         for i, detection in enumerate(detections):
             if all_matches.shape[0] and all_matches[all_matches[:, 1] == i].shape[0] == 0:
                 detection_class = detection_classes[i]
                 self.matrix[detection_class, self.num_classes] += 1
-                self.L[detection_class][self.num_classes].append(self.gtFile) if self.L else None #
+                self.accumFileL[detection_class][self.num_classes].append(self.gtFile) if self.accumFileL else None #
 
     def return_matrix(self):
         return self.matrix
@@ -104,4 +119,4 @@ class ConfusionMatrix:
             print(' '.join(map(str, self.matrix[i])))
             
     def getAccumFileL(self):
-        return self.L
+        return self.accumFileL
