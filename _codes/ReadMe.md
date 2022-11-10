@@ -1,3 +1,15 @@
+Formats
++ ../_data/pretext/bb40k/ilsvrc100/train/2d/*.jpg
++ ../_data/downstream/labv3
+    + yolo_train, yolo_val, yolo_test X *.jpg, *.txt, classes.txt
+    + classes.txt
+    + voc_train, voc_val, voc_test X *.xml
+    + MSCoco
+        + train2017, val2017: *.jpg
+        + annotations/instances_train2017.json, annotations/instances_val2017.json 
++ ../_exps/downstream/test3k_coco/viz_txt || yolo-analog: cid, conf, xmin(int), ymin, xmax, ymax 
+
+Files
 1. preprocessing.ipynb
     + pretext part: collect folders with images and copy to speficied folder
     + downstream part: 
