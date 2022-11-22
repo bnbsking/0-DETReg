@@ -95,7 +95,10 @@ def getAnnot(imgPath, annotPath, classList):
         height, width, _ = cv2.imread(imgPath).shape
         boxes, cids = [], []
         for line in open(annotPath,"r").readlines():
-            cid, cx, cy, w, h = line.split(" ")
+            try:
+                cid, cx, cy, w, h = line.split(" ")
+            except:
+                cid, cx, cy, w, h, conf = line.split(" ")
             cids.append( int(cid) )
             if "." in cx:
                 xmin, ymin, xmax, ymax = boxAny2Voc.yoloFloat(cx, cy, w, h, width, height)

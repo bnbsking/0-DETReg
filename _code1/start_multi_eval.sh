@@ -1,7 +1,7 @@
 #!/bin/bash
 
-OUTPUT_DIR="_exps/downstream/example"
-DATA_ROOT_FT="_data/downstream/example"
+OUTPUT_DIR="_exps/downstream/wuguv1"
+DATA_ROOT_FT="_data/downstream/wuguv1"
 
 for FINETUNE_WEIGHT in $(ls $OUTPUT_DIR | grep checkpoint0); do
     FINETUNE_WEIGHT=$OUTPUT_DIR/$FINETUNE_WEIGHT

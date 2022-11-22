@@ -2,13 +2,12 @@
 
 mode_arr=(finetune finetune_resume evalutation visualization)
 MODE_IDX=0
-OUTPUT_DIR="_exps/downstream/test3k_recycle_parallel"
-LR_DROP=40
-EPOCHS=50
-#FINETUNE_WEIGHT="_exps/pretext/official/checkpoint_coco.pth"
-FINETUNE_WEIGHT="_exps/pretext/test3k_parallel/checkpoint0049.pth"
-#FINETUNE_WEIGHT="_exps/downstream/test3k_coco_parallel/checkpoint0049.pth"
-DATA_ROOT_FT="_data/downstream/test3k"
+OUTPUT_DIR="_exps/downstream/wuguv1_coco"
+LR_DROP=90
+EPOCHS=100
+FINETUNE_WEIGHT="_exps/pretext/official/checkpoint_coco.pth"
+#FINETUNE_WEIGHT="_exps/downstream/wuguv1/checkpoint0099.pth"
+DATA_ROOT_FT="_data/downstream/wuguv1"
 
 if [ $MODE_IDX == 0 ]; then
     #python -u main.py --output_dir $OUTPUT_DIR --dataset coco --batch_size 4 --num_workers 8 --data_root_ft $DATA_ROOT_FT --epochs $EPOCHS --lr_drop $LR_DROP
