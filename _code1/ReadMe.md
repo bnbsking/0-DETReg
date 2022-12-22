@@ -1,4 +1,4 @@
-### File structures and formats
+# File structures and formats
 1. .../\[\*.img,\*.txt\]
 2. \_data/
     + pretext/
@@ -23,9 +23,8 @@
             + pr.npy, ap.jpg, pr.jpg, confusion.jpg
             + GT_\*\_PD_\*/\*.jpg
 
-### \_code1/
-
-# packages
+# \_code1/
+### packages
 1. convert.py: box or labels conversion between coco, voc and yolo
 2. detregDownstreamInference.py: save predictions as yolo-liked format
     + cid cx cy w h conf
@@ -56,7 +55,7 @@
     + specify imgFolder and load labels .../\*.txt as well as predictions output/\*.txt
     + output pr.npy, ap.jpg, pr.jpg, confusion.jpg and GT_\*\_PD_\*/\*.jpg
         
-### Others
+# Others
 + main.py
     + line 325-326: dump config as json
     + line 212: add data_root_ft as input argument
