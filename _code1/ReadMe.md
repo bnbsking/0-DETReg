@@ -1,4 +1,4 @@
-#### File structures and formats
+### File structures and formats
 1. .../\[\*.img,\*.txt\]
 2. \_data/
     + pretext/
@@ -24,6 +24,7 @@
             + GT_\*\_PD_\*/\*.jpg
 
 ### \_code1/
+
 # packages
 1. convert.py: box or labels conversion between coco, voc and yolo
 2. detregDownstreamInference.py: save predictions as yolo-liked format
