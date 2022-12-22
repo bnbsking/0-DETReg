@@ -1,4 +1,4 @@
-###### File structures and formats
+#### File structures and formats
 1. .../\[\*.img,\*.txt\]
 2. \_data/
     + pretext/
@@ -23,14 +23,14 @@
             + pr.npy, ap.jpg, pr.jpg, confusion.jpg
             + GT_\*\_PD_\*/\*.jpg
 
-###### \_code1/
-### packages
+### \_code1/
+# packages
 1. convert.py: box or labels conversion between coco, voc and yolo
 2. detregDownstreamInference.py: save predictions as yolo-liked format
     + cid cx cy w h conf
 3. confusion_matrix.py: get confusion matrix with imgPath in blocks
 4. visualization.py: save visualized gt and pt images
-### process
+# process
 1. preprocessPretext.ipynb
     + copy all images for imgFolder in imgFolderL -> \_data/pretext/121k/ilsvrc/train/2d/
 2. start_pretext.sh / startParallel_pretext.sh
